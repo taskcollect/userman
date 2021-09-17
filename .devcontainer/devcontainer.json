@@ -1,0 +1,28 @@
+{
+	// intrinsic name of the dev container
+	"name": "Go",
+
+	// the docker compose file (relative to .devcontainer)
+	"dockerComposeFile": [
+		"docker-compose.yml"
+	],
+
+	// run this service from the docker-compose file
+	"service": "devcontainer",
+
+	// VSCode extensions to install
+	"extensions": [
+		"golang.Go",
+	],
+
+	// set VSCode extension defaults
+	"settings": {
+		"go.toolsManagement.checkForUpdates": "local",
+		"go.useLanguageServer": true,
+		"go.gopath": "/go",
+		"go.goroot": "/usr/local/go"
+	},
+
+	// wheer the files are in the container, this should be vol-mounted in the docker-compose file
+	"workspaceFolder": "/root/workspace",
+}

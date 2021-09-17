@@ -1,0 +1,30 @@
+version: "3"
+services:
+  devcontainer:
+    # add services that this devcontainer depends on here
+    depends_on: [
+      database
+    ]
+
+    cap_add: 
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+    
+    build:
+      context: ./devcontainer
+
+    volumes: 
+      - ../:/root/workspace
+
+    command: /bin/sh -c "while sleep 1000; do :; done"
+  
+  # -- add any service below this line --
+
+  database:
+    image: postgres
+    environment:
+      POSTGRES_USER: dev
+      POSTGRES_PASSWORD: dev
+      POSTGRES_DB: taskcollect
+    restart: always
