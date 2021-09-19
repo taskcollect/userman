@@ -8,13 +8,6 @@ import (
 	"time"
 )
 
-type userRegData struct {
-	Username    string                 `json:"name"`
-	Password    string                 `json:"secret"`
-	Credentials dbutil.UserCredentials `json:"creds"`
-	Preferences dbutil.UserPreferences `json:"prefs"`
-}
-
 func (h *BaseHandler) NewUser(w http.ResponseWriter, r *http.Request) {
 	if !EnsureMethod("POST", w, r) {
 		return
@@ -27,25 +20,32 @@ func (h *BaseHandler) NewUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var udata userRegData
+	var ureg dbutil.UserRegSchema
 
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 
 	// construct a new decoder and decode the request body into the struct
-	if err := dec.Decode(&udata); err != nil {
+	if err := dec.Decode(&ureg); err != nil {
 		// the decoder returned an error
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
+		w.Write([]byte("invalid json"))
+		return
+	}
+
+	if ureg.Username == "" || ureg.Password == "" {
+		// the request body was missing a field
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("missing username or password"))
 		return
 	}
 
 	// construct a real user object
 	user := dbutil.User{
-		Username:     udata.Username,
-		Password:     udata.Password,
-		Credentials:  udata.Credentials,
-		Preferences:  udata.Preferences,
+		Username:     ureg.Username,
+		Password:     ureg.Password,
+		Credentials:  ureg.Credentials,
+		Preferences:  ureg.Preferences,
 		RegisteredOn: time.Now(),
 		LastLogin:    time.Now(),
 	}
@@ -54,6 +54,7 @@ func (h *BaseHandler) NewUser(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		log.Println(err.Error())
 		return
 	}
 
@@ -67,7 +68,7 @@ func (h *BaseHandler) NewUser(w http.ResponseWriter, r *http.Request) {
 	if err := dbutil.InsertUser(h.db, &user); err != nil {
 		// the database returned an error
 		w.WriteHeader(http.StatusInternalServerError)
-		log.Println("Error while trying to register new user '" + user.Username + "': " + err.Error())
+		log.Println(err.Error())
 		return
 	}
 }

@@ -23,8 +23,16 @@ func makeServer(db *sql.DB) *http.Server {
 
 	handler := handlers.NewBaseHandler(db)
 	http.HandleFunc("/v1/register", handler.NewUser)
+	http.HandleFunc("/v1/get", handler.GetUser)
 
 	return server
+}
+
+type TestStruct struct {
+	IntField       int    `json:",omitempty"`
+	BoolField      *bool  `json:",omitempty"`
+	StringField    string `json:",omitempty"`
+	NeqStringField string
 }
 
 func main() {
