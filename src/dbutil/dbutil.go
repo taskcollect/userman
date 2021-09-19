@@ -3,7 +3,6 @@ package dbutil
 import (
 	"database/sql"
 	"fmt"
-	"os"
 
 	_ "github.com/lib/pq"
 )
@@ -40,11 +39,53 @@ func Open(config *SqlConfig) (*sql.DB, error) {
 	return db, nil
 }
 
-func RunSQLFile(db *sql.DB, fname string, sqlArgs ...interface{}) (*sql.Rows, error) {
-	// read the file
-	buf, err := os.ReadFile(fname)
+// you should use this when you want to modify the database
+// starts a transaction, runs the query and commits the transaction
+// can always rollback if something goes wrong
+func RunQueryFailsafe(db *sql.DB, query string, args ...interface{}) (*sql.Rows, error) {
+	// initialize transaction
+	tx, err := db.Begin()
 	if err != nil {
 		return nil, err
 	}
-	return db.Query(string(buf), sqlArgs...)
+
+	stmt, err := tx.Prepare(query)
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	// execute the query
+	rows, err := stmt.Query(args...)
+	if err != nil {
+		stmt.Close()
+		tx.Rollback()
+		return nil, err
+	}
+
+	// commit any changes made
+	err = tx.Commit()
+	if err != nil {
+		// something went wrong with committing
+		stmt.Close()
+		tx.Rollback()
+		return nil, err
+	}
+	return rows, nil
+}
+
+func Initialize(db *sql.DB) error {
+	q := `
+	CREATE TABLE IF NOT EXISTS users (
+		username VARCHAR(64) NOT NULL PRIMARY KEY,
+		password VARCHAR(64) NOT NULL,
+		credentials JSON NOT NULL,
+		preferences JSON NOT NULL,
+		registeredOn TIMESTAMP NOT NULL,
+		lastLogin TIMESTAMP
+	);
+	`
+
+	_, err := RunQueryFailsafe(db, q)
+	return err
 }

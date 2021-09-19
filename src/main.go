@@ -1,8 +1,11 @@
 package main
 
 import (
+	"database/sql"
 	"log"
 	"main/dbutil"
+	"main/handlers"
+	"net/http"
 )
 
 var defaultConfig = dbutil.SqlConfig{
@@ -13,9 +16,20 @@ var defaultConfig = dbutil.SqlConfig{
 	Database: "taskcollect",
 }
 
+func makeServer(db *sql.DB) *http.Server {
+	server := &http.Server{
+		Addr: ":2000",
+	}
+
+	handler := handlers.NewBaseHandler(db)
+	http.HandleFunc("/v1/register", handler.NewUser)
+
+	return server
+}
+
 func main() {
 	log.Printf(
-		"trying to open connection to db '%s' as %s@%s:%d",
+		"Trying to open connection to db '%s' as %s@%s:%d",
 		defaultConfig.Database, defaultConfig.User, defaultConfig.Host, defaultConfig.Port,
 	)
 
@@ -23,18 +37,19 @@ func main() {
 
 	if err != nil {
 		log.Fatalf("Could not connect: %v\n", err)
-		return
 	}
 
 	log.Println("Connection OK, setting up database...")
 
-	_, err = dbutil.RunSQLFile(db, "dbutil/init.sql")
+	err = dbutil.Initialize(db)
 	if err != nil {
 		log.Fatalf("Could not run db init: %v\n", err)
-		return
 	}
 
-	log.Println("Database inititalized!")
+	log.Println("Database inititalized, starting server...")
+
+	s := makeServer(db)
+	s.ListenAndServe()
 
 	// remember to close the connection once we exit
 	defer db.Close()
