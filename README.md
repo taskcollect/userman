@@ -27,8 +27,8 @@ Manages everything related to user state.
 \* Here is an example of a field selector
 ```json
 {
-    // I want this user's credentials for the Google API & Stile
-    "creds": ["google", "stile"], 
+    // I want this user's credentials
+    "creds": true, 
     // Send back the preferences of this user, with the defaults filled in
     "prefs": true 
 }
