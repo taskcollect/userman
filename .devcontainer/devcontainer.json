@@ -13,6 +13,8 @@
 	// VSCode extensions to install
 	"extensions": [
 		"golang.Go",
+		"mtxr.sqltools",
+		"mtxr.sqltools-driver-pg"
 	],
 
 	// set VSCode extension defaults
@@ -20,7 +22,19 @@
 		"go.toolsManagement.checkForUpdates": "local",
 		"go.useLanguageServer": true,
 		"go.gopath": "/go",
-		"go.goroot": "/usr/local/go"
+		"go.goroot": "/usr/local/go",
+		"sqltools.connections": [
+			{
+				"previewLimit": 50,
+				"server": "database",
+				"port": 5432,
+				"driver": "PostgreSQL",
+				"name": "userman-devdb",
+				"database": "taskcollect",
+				"username": "dev",
+				"password": "dev"
+			}
+		]
 	},
 
 	// wheer the files are in the container, this should be vol-mounted in the docker-compose file
