@@ -25,7 +25,7 @@ Manages everything related to user state.
         * 400 Bad Request - JSON Payload was invalid (includes reason)
 
 \* Here is an example of a field selector
-```json
+```jsonc
 {
     // I want this user's credentials
     "creds": true, 

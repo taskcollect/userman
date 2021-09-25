@@ -11,3 +11,5 @@ FROM mcr.microsoft.com/vscode/devcontainers/go:0-${VARIANT}
 WORKDIR /root/workspace/src
 # PostgreSQL Driver
 RUN go get github.com/lib/pq
+# Better JSON Parser
+RUN go get github.com/buger/jsonparser

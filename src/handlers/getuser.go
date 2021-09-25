@@ -1,10 +1,13 @@
 package handlers
 
 import (
-	"encoding/json"
+	"errors"
+	"io/ioutil"
 	"log"
 	"main/dbutil"
 	"net/http"
+
+	"github.com/buger/jsonparser"
 )
 
 func (h *BaseHandler) GetUser(w http.ResponseWriter, r *http.Request) {
@@ -19,23 +22,79 @@ func (h *BaseHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var ureq dbutil.UserRequestSchema
+	ureq := dbutil.UserRequestSchema{
+		Username: "",
+		Secret:   "",
+		Fields: dbutil.UserFieldSelector{
+			WantCredentials: false,
+			WantPreferences: false,
+		},
+	}
 
-	dec := json.NewDecoder(r.Body)
-	dec.DisallowUnknownFields()
+	// jsonparser.EachKey will iterate over all keys in the json object and pass values
+	// to the switch statement.
+	paths := [][]string{
+		{"username"},
+		{"secret"},
+		{"creds"},
+		{"prefs"},
+	}
 
-	// construct a new decoder and decode the request body into the struct
-	if err := dec.Decode(&ureq); err != nil {
-		// the decoder returned an error
+	// convert response body to byte slice
+	data, err := ioutil.ReadAll(r.Body)
+	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("invalid json"))
 		return
 	}
 
-	if ureq.Username == "" || ureq.Password == "" {
+	err = nil
+
+	jsonparser.EachKey(data, func(idx int, value []byte, vt jsonparser.ValueType, _ error) {
+		if err != nil {
+			return
+		}
+
+		switch idx {
+		case 0: // []string{"username"}
+			if vt != jsonparser.String {
+				err = errors.New("username must be string")
+				return
+			}
+			ureq.Username = string(value)
+		case 1: // []string{"secret"}
+			if vt != jsonparser.String {
+				err = errors.New("secret must be string")
+				return
+			}
+
+			ureq.Secret = string(value)
+		case 2: // []string{"creds"}
+			bval, e := jsonparser.ParseBoolean(value)
+			if e != nil {
+				err = e
+				return
+			}
+			ureq.Fields.WantCredentials = bval
+		case 3: // []string{"prefs"}
+			bval, e := jsonparser.ParseBoolean(value)
+			if e != nil {
+				err = e
+				return
+			}
+			ureq.Fields.WantPreferences = bval
+		}
+	}, paths...)
+
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("invalid structure"))
+		return
+	}
+
+	if ureq.Username == "" || ureq.Secret == "" {
 		// the request body was missing a field
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("missing username or password"))
+		w.Write([]byte("missing username and/or secret"))
 		return
 	}
 
@@ -53,16 +112,10 @@ func (h *BaseHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !ureq.Fields.WantCredentials && !ureq.Fields.WantPreferences {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("no field requested"))
-		return
-	}
-
 	uresp, err := dbutil.GetUser(
 		h.db,
 		ureq.Username,
-		ureq.Password,
+		ureq.Secret,
 		ureq.Fields.WantCredentials,
 		ureq.Fields.WantPreferences,
 	)
@@ -70,6 +123,7 @@ func (h *BaseHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if err.Error() == "unauthorized" {
 			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte("no access to data"))
 		} else {
 			w.WriteHeader(http.StatusInternalServerError)
 			log.Println(err.Error())
@@ -77,8 +131,8 @@ func (h *BaseHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	enc := json.NewEncoder(w)
-	err = enc.Encode(uresp)
+	w.Header().Set("Content-Type", "application/json")
+	_, err = w.Write(uresp)
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)

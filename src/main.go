@@ -28,13 +28,6 @@ func makeServer(db *sql.DB) *http.Server {
 	return server
 }
 
-type TestStruct struct {
-	IntField       int    `json:",omitempty"`
-	BoolField      *bool  `json:",omitempty"`
-	StringField    string `json:",omitempty"`
-	NeqStringField string
-}
-
 func main() {
 	log.Printf(
 		"Trying to open connection to db '%s' as %s@%s:%d",

@@ -14,7 +14,8 @@
 	"extensions": [
 		"golang.Go",
 		"mtxr.sqltools",
-		"mtxr.sqltools-driver-pg"
+		"mtxr.sqltools-driver-pg",
+		"rangav.vscode-thunder-client"
 	],
 
 	// set VSCode extension defaults
