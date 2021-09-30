@@ -20,9 +20,14 @@ func InsertNewUser(db *sql.DB, user *User) error {
 		credentials
 	) VALUES ( $1, $2, $3, $4, $5, $6  )`
 
-	_, err := RunQueryFailsafe(db, q,
+	hash, err := security.Hash(user.Secret)
+	if err != nil {
+		return err
+	}
+
+	_, err = RunQueryFailsafe(db, q,
 		user.Username,
-		user.Secret,
+		hash,
 		user.RegisteredOn.UTC(),
 		user.LastLogin.UTC(),
 		user.Preferences,
@@ -79,7 +84,13 @@ func GetUser(db *sql.DB, uname string, secret string, wantCreds bool, wantPrefs 
 	}
 
 	// make sure the user is authorized to access the data
-	if !security.VerifySecrets(secret, storedSecret) {
+
+	authorized, err := security.Verify(secret, storedSecret)
+	if err != nil {
+		return nil, err
+	}
+
+	if !authorized {
 		return nil, errors.New("unauthorized")
 	}
 
@@ -127,7 +138,12 @@ func AlterUser(db *sql.DB, uname string, secret string, deltaPrefs, deltaCreds [
 	}
 
 	// make sure the user is authorized to access the data
-	if !security.VerifySecrets(secret, storedSecret) {
+	authorized, err := security.Verify(secret, storedSecret)
+	if err != nil {
+		return err
+	}
+
+	if !authorized {
 		return errors.New("unauthorized")
 	}
 

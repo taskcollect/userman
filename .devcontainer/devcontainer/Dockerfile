@@ -13,3 +13,5 @@ WORKDIR /root/workspace/src
 RUN go get github.com/lib/pq
 # Better JSON Parser
 RUN go get github.com/buger/jsonparser
+# Sane argon2id library
+RUN go get github.com/alexedwards/argon2id
