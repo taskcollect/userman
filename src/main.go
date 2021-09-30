@@ -16,17 +16,20 @@ var defaultConfig = dbutil.SqlConfig{
 	Database: "taskcollect",
 }
 
-func makeServer(db *sql.DB) *http.Server {
-	server := &http.Server{
-		Addr: ":2000",
-	}
+func makeMux(db *sql.DB) *http.ServeMux {
+	// server := &http.Server{
+	// 	Addr: ":2000",
+	// }
+
+	mux := http.NewServeMux()
 
 	handler := handlers.NewBaseHandler(db)
-	http.HandleFunc("/v1/register", handler.NewUser)
-	http.HandleFunc("/v1/get", handler.GetUser)
-	http.HandleFunc("/v1/alter", handler.AlterUser)
 
-	return server
+	mux.HandleFunc("/v1/register", handler.NewUser)
+	mux.HandleFunc("/v1/get", handler.GetUser)
+	mux.HandleFunc("/v1/alter", handler.AlterUser)
+
+	return mux
 }
 
 func main() {
@@ -50,8 +53,8 @@ func main() {
 
 	log.Println("Database inititalized, starting server...")
 
-	s := makeServer(db)
-	s.ListenAndServe()
+	mux := makeMux(db)
+	http.ListenAndServe(":2000", handlers.RequestLogger(mux))
 
 	// remember to close the connection once we exit
 	defer db.Close()

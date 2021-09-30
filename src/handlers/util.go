@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"database/sql"
+	"log"
 	"net/http"
+	"time"
 )
 
 // handler for the base of the api that allows it to access the db object
@@ -26,4 +28,20 @@ func EnsureMethod(method string, w http.ResponseWriter, r *http.Request) bool {
 		return false
 	}
 	return true
+}
+
+func RequestLogger(mux http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+
+		mux.ServeHTTP(w, r)
+
+		log.Printf(
+			"%s %s from [ %s ] done in [ %v ]",
+			r.Method,
+			r.RequestURI,
+			r.RemoteAddr,
+			time.Since(start),
+		)
+	})
 }
