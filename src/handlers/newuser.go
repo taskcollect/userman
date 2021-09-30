@@ -17,13 +17,6 @@ func (h *BaseHandler) NewUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.db.Ping()
-	if err != nil {
-		// the database won't respond
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
 	// construct a real user object
 	user := dbutil.User{
 		Username:     "",
@@ -37,7 +30,7 @@ func (h *BaseHandler) NewUser(w http.ResponseWriter, r *http.Request) {
 	// jsonparser.EachKey will iterate over all keys in the json object and pass values
 	// to the switch statement.
 	paths := [][]string{
-		{"username"},
+		{"user"},
 		{"secret"},
 		{"creds"},
 		{"prefs"},
@@ -58,7 +51,7 @@ func (h *BaseHandler) NewUser(w http.ResponseWriter, r *http.Request) {
 		}
 
 		switch idx {
-		case 0: // []string{"username"}
+		case 0: // []string{"user"}
 			if vt != jsonparser.String {
 				err = errors.New("username must be string")
 				return
@@ -123,7 +116,7 @@ func (h *BaseHandler) NewUser(w http.ResponseWriter, r *http.Request) {
 	user.Preferences = prefsOverrides
 
 	// insert the user into the database
-	if err := dbutil.InsertUser(h.db, &user); err != nil {
+	if err := dbutil.InsertNewUser(h.db, &user); err != nil {
 		// the database returned an error
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Println(err.Error())

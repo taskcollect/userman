@@ -24,6 +24,7 @@ func makeServer(db *sql.DB) *http.Server {
 	handler := handlers.NewBaseHandler(db)
 	http.HandleFunc("/v1/register", handler.NewUser)
 	http.HandleFunc("/v1/get", handler.GetUser)
+	http.HandleFunc("/v1/alter", handler.AlterUser)
 
 	return server
 }

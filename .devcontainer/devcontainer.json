@@ -1,15 +1,12 @@
 {
 	// intrinsic name of the dev container
 	"name": "Go",
-
 	// the docker compose file (relative to .devcontainer)
 	"dockerComposeFile": [
 		"docker-compose.yml"
 	],
-
 	// run this service from the docker-compose file
 	"service": "devcontainer",
-
 	// VSCode extensions to install
 	"extensions": [
 		"golang.Go",
@@ -17,7 +14,6 @@
 		"mtxr.sqltools-driver-pg",
 		"rangav.vscode-thunder-client"
 	],
-
 	// set VSCode extension defaults
 	"settings": {
 		"go.toolsManagement.checkForUpdates": "local",
@@ -37,7 +33,10 @@
 			}
 		]
 	},
-
+	"remoteEnv": {
+		"CGO_ENABLED": "0",
+		"GOOS": "linux"
+	},
 	// wheer the files are in the container, this should be vol-mounted in the docker-compose file
 	"workspaceFolder": "/root/workspace",
 }

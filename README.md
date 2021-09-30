@@ -22,7 +22,7 @@ See the HTTP specification below.
         **Example request:** (comments not present in real request)
         ```jsonc
         {
-            "username": "someuser",
+            "user": "someuser",
             "secret": "PlaintextToBeHashed123",
             "creds": {
                 // API tokens, never passwords
@@ -52,7 +52,7 @@ See the HTTP specification below.
         **Example request:**
         ```jsonc
         {
-            "username": "someuser",
+            "user": "someuser",
             "secret": "plaintext123",
             "prefs": true,
             "creds": true
@@ -73,3 +73,18 @@ See the HTTP specification below.
             }
         }
         ```
+* POST /v1/alter
+    * JSON Payload:        
+        * `user` (string) the person's username
+        * `secret` (string) the person's password
+        * `creds` (object) update the credentials of this person
+        * `prefs` (object) update the preferences of this person
+    * Returns:
+        * 200 OK - Alteration successful.
+        * 403 Forbidden - Credential verification failed; no access to alter data
+        * 404 Not Found - Requested user does not exist
+        * 400 Bad Request - JSON Payload was invalid
+   
+    The `creds` and `prefs` objects do not have to be the full objects. 
+    
+    Any keys inside of them will update the stored preferences; think of them as "delta" preferences.

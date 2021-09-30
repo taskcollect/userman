@@ -26,14 +26,14 @@ func RemoveDefaultKeys(real, template []byte, noNewKeys bool, strictType bool) (
 			if dType == jsonparser.NotExist {
 				// default value does not exist for its counterpart in the real
 				if noNewKeys {
-					return fmt.Errorf("key %s of real was not in default", string(key))
+					return fmt.Errorf("invalid: key %s of real was not in default", string(key))
 				}
 				return nil
 			}
 
 			if strictType && dType != rType {
 				// default value is of different type
-				return fmt.Errorf("key %s of type %s does not match templated type %s", string(key), rType, dType)
+				return fmt.Errorf("invalid: key %s of type %s does not match templated type %s", string(key), rType, dType)
 			}
 
 			if bytes.Equal(rValue, dValue) {
@@ -86,4 +86,29 @@ func AddDefaultKeys(overrides, template []byte, noNewKeys bool) ([]byte, error) 
 	}
 
 	return overrides, nil
+}
+
+// overlay an array over another one
+// will overwrite "under" array's keys with "over" array's keys
+// any new keys will also get added
+func Merge(over, under []byte) ([]byte, error) {
+	err := jsonparser.ObjectEach(over,
+		func(key []byte, val []byte, vt jsonparser.ValueType, offset int) error {
+			var err error
+
+			if vt == jsonparser.String {
+				// add quotes to the value if it's a string
+				val = []byte(strconv.Quote(string(val)))
+			}
+
+			under, err = jsonparser.Set(under, val, string(key))
+			return err
+		},
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return under, nil
 }

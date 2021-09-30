@@ -77,10 +77,10 @@ func RunQueryFailsafe(db *sql.DB, query string, args ...interface{}) (*sql.Rows,
 func Initialize(db *sql.DB) error {
 	q := `
 	CREATE TABLE IF NOT EXISTS users (
-		username VARCHAR(32) NOT NULL PRIMARY KEY,
-		secret VARCHAR(96) NOT NULL,
-		credentials JSON NOT NULL,
-		preferences JSON NOT NULL,
+		username TEXT NOT NULL PRIMARY KEY,
+		secret TEXT NOT NULL,
+		credentials JSONB NOT NULL,
+		preferences JSONB NOT NULL,
 		registeredOn TIMESTAMP NOT NULL,
 		lastLogin TIMESTAMP
 	);

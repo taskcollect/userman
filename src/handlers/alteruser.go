@@ -10,25 +10,28 @@ import (
 	"github.com/buger/jsonparser"
 )
 
-func (h *BaseHandler) GetUser(w http.ResponseWriter, r *http.Request) {
-	if !EnsureMethod("GET", w, r) {
+func (h *BaseHandler) AlterUser(w http.ResponseWriter, r *http.Request) {
+	if !EnsureMethod("POST", w, r) {
 		return
 	}
 
-	ureq := dbutil.UserRequestSchema{
-		Fields: dbutil.UserFieldSelector{
-			WantCredentials: false,
-			WantPreferences: false,
-		},
-	}
-
-	// jsonparser.EachKey will iterate over all keys in the json object and pass values
-	// to the switch statement.
 	paths := [][]string{
 		{"user"},
 		{"secret"},
 		{"creds"},
 		{"prefs"},
+	}
+
+	// make a special struct to keep all of the variables
+	user := struct {
+		Username   string
+		Secret     string
+		DeltaCreds []byte
+		DeltaPrefs []byte
+	}{
+		// just initialize these with empty json, so we don't have to check if they're empty bytearrays
+		DeltaCreds: []byte{'{', '}'},
+		DeltaPrefs: []byte{'{', '}'},
 	}
 
 	// convert response body to byte slice
@@ -51,28 +54,25 @@ func (h *BaseHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 				err = errors.New("username must be string")
 				return
 			}
-			ureq.Username = string(value)
+			user.Username = string(value)
 		case 1: // []string{"secret"}
 			if vt != jsonparser.String {
 				err = errors.New("secret must be string")
 				return
 			}
-
-			ureq.Secret = string(value)
-		case 2: // []string{"creds"}
-			bval, e := jsonparser.ParseBoolean(value)
-			if e != nil {
-				err = e
+			user.Secret = string(value)
+		case 2: // []string{"creds"},
+			if vt != jsonparser.Object {
+				err = errors.New("creds must be object")
 				return
 			}
-			ureq.Fields.WantCredentials = bval
-		case 3: // []string{"prefs"}
-			bval, e := jsonparser.ParseBoolean(value)
-			if e != nil {
-				err = e
+			user.DeltaCreds = value // just take the json directly
+		case 3: // []string{"prefs"},
+			if vt != jsonparser.Object {
+				err = errors.New("prefs must be object")
 				return
 			}
-			ureq.Fields.WantPreferences = bval
+			user.DeltaPrefs = value // just take the json directly
 		}
 	}, paths...)
 
@@ -82,14 +82,14 @@ func (h *BaseHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if ureq.Username == "" || ureq.Secret == "" {
+	if user.Username == "" || user.Secret == "" {
 		// the request body was missing a field
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("missing username and/or secret"))
 		return
 	}
 
-	exists, err := dbutil.DoesUserExist(h.db, ureq.Username)
+	exists, err := dbutil.DoesUserExist(h.db, user.Username)
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -103,31 +103,19 @@ func (h *BaseHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uresp, err := dbutil.GetUser(
-		h.db,
-		ureq.Username,
-		ureq.Secret,
-		ureq.Fields.WantCredentials,
-		ureq.Fields.WantPreferences,
-	)
+	err = dbutil.AlterUser(h.db, user.Username, user.Secret, user.DeltaPrefs, user.DeltaCreds)
 
 	if err != nil {
-		if err.Error() == "unauthorized" {
+		switch err.Error() {
+		case "unauthorized":
 			w.WriteHeader(http.StatusUnauthorized)
-			w.Write([]byte("no access to get data"))
-		} else {
+			w.Write([]byte("no access to alter data"))
+		case "invalid":
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("invalid alteration payload"))
+		default:
 			w.WriteHeader(http.StatusInternalServerError)
 			log.Println(err.Error())
 		}
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	_, err = w.Write(uresp)
-
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Println(err.Error())
-		return
 	}
 }
