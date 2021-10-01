@@ -8,7 +8,7 @@ WORKDIR /mnt
 COPY ./src .
 # build (this will auto install deps from go.mod)
 RUN mkdir -p dist
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o dist/app .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -o dist/app .
 
 # --- Run Stage
 
