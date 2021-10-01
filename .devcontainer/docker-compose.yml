@@ -17,6 +17,14 @@ services:
     volumes: 
       - ../:/root/workspace
 
+    environment:
+      DB_HOST: "database"
+      DB_PORT: 5432
+      DB_USER: "dev"
+      DB_PASS: "dev"
+      DB_NAME: "taskcollect"
+      BIND_ADDR: ":2000"
+
     command: /bin/sh -c "while sleep 1000; do :; done"
   
   # -- add any service below this line --
