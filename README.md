@@ -8,6 +8,8 @@ See the HTTP specification below.
 ## HTTP Spec
 
 * POST /v1/register
+    
+    *Registers a new user.*
     * JSON Payload:
         * `user` (string) The person's username.
         * `secret` (string) The person's password, in plaintext. Used to generate the DB hash.
@@ -36,6 +38,8 @@ See the HTTP specification below.
         }
         ```
 * GET /v1/get
+    
+    *Gets preferences and/or stored credentials of the user.*
     * JSON Payload:
         * `user` (string) the person's username
         * `secret` (string) the person's password
@@ -74,6 +78,8 @@ See the HTTP specification below.
         }
         ```
 * POST /v1/alter
+    
+    *Alters settings of the user.*
     * JSON Payload:        
         * `user` (string) the person's username
         * `secret` (string) the person's password
@@ -88,3 +94,15 @@ See the HTTP specification below.
     The `creds` and `prefs` objects do not have to be the full objects. 
     
     Any keys inside of them will update the stored preferences; think of them as "delta" preferences.
+    
+* DELETE /v1/delete
+    
+    *Deletes the user.*
+    * JSON Payload:        
+        * `user` (string) the person's username
+        * `secret` (string) the person's password
+    * Returns:
+        * 200 OK - Deletion successful.
+        * 403 Forbidden - Credential verification failed; no access to delete
+        * 404 Not Found - Requested user does not exist
+        * 400 Bad Request - JSON Payload was invalid
