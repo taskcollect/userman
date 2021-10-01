@@ -15,7 +15,7 @@ services:
       context: ./devcontainer
 
     volumes: 
-      - ../:/root/workspace
+      - ../:/home/vscode/workspace
 
     environment:
       DB_HOST: "database"

@@ -7,8 +7,11 @@ FROM mcr.microsoft.com/vscode/devcontainers/go:0-${VARIANT}
  RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
      && apt-get -y install --no-install-recommends nodejs iputils-ping 
 
+USER vscode
+RUN mkdir -p /home/vscode/workspace
+
 # We need to be in the folder with the go package to run any go get's
-WORKDIR /root/workspace/src
+WORKDIR /home/vscode/workspace/src
 # PostgreSQL Driver
 RUN go get github.com/lib/pq
 # Better JSON Parser

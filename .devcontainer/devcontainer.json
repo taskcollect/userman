@@ -37,6 +37,7 @@
 		"CGO_ENABLED": "0",
 		"GOOS": "linux"
 	},
+	"remoteUser": "vscode",
 	// wheer the files are in the container, this should be vol-mounted in the docker-compose file
-	"workspaceFolder": "/root/workspace",
+	"workspaceFolder": "/home/vscode/workspace",
 }
