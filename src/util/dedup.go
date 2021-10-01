@@ -1,7 +1,7 @@
 package util
 
 import (
-	"bytes"
+	"crypto/subtle"
 	"fmt"
 	"strconv"
 
@@ -36,7 +36,8 @@ func RemoveDefaultKeys(real, template []byte, noNewKeys bool, strictType bool) (
 				return fmt.Errorf("invalid: key %s of type %s does not match templated type %s", string(key), rType, dType)
 			}
 
-			if bytes.Equal(rValue, dValue) {
+			// compare byte slices
+			if subtle.ConstantTimeCompare(rValue, dValue) == 1 {
 				// the value is the same, remove it from the real
 				real = jsonparser.Delete(real, string(key))
 			}
