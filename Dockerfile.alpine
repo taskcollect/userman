@@ -2,13 +2,11 @@
 
 # --- Build Stage
 
-FROM golang:1.17
+FROM golang:1.17 AS build
 WORKDIR /mnt
-    # install deps
-    # RUN go get -d -v a/go/package/name
 # copy source
 COPY ./src .
-# build
+# build (this will auto install deps from go.mod)
 RUN mkdir -p dist
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o dist/app .
 
@@ -19,7 +17,7 @@ RUN apk --no-cache add ca-certificates
 
 # copy binary from build stage
 WORKDIR /root/
-COPY --from=0 /mnt/dist/ ./
+COPY --from=build /mnt/dist/ ./
 
 # when the container is started, run the binary
 CMD ["./app"]

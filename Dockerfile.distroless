@@ -1,0 +1,22 @@
+# PRODUCTION DOCKERFILE
+
+# --- Build Stage
+
+FROM golang:1.17 AS build
+WORKDIR /mnt
+# copy source
+COPY ./src .
+# build (this will auto install deps from go.mod)
+RUN mkdir -p dist
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o dist/app .
+
+# --- Run Stage
+
+FROM gcr.io/distroless/static:latest
+
+# copy binary from build stage
+COPY --from=build /mnt/dist/ /
+
+# when the container is started, run the binary
+CMD ["/app"]
+
