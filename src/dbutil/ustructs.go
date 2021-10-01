@@ -15,7 +15,6 @@ type User struct {
 	Credentials  []byte
 	Preferences  []byte
 	RegisteredOn time.Time
-	LastLogin    time.Time
 }
 
 type UserFieldSelector struct {

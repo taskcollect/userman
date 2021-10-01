@@ -81,8 +81,7 @@ func Initialize(db *sql.DB) error {
 		secret TEXT NOT NULL,
 		credentials JSONB NOT NULL,
 		preferences JSONB NOT NULL,
-		registeredOn TIMESTAMP NOT NULL,
-		lastLogin TIMESTAMP
+		registeredOn TIMESTAMP NOT NULL
 	);
 	`
 

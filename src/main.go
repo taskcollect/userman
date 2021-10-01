@@ -17,10 +17,6 @@ var defaultConfig = dbutil.SqlConfig{
 }
 
 func makeMux(db *sql.DB) *http.ServeMux {
-	// server := &http.Server{
-	// 	Addr: ":2000",
-	// }
-
 	mux := http.NewServeMux()
 
 	handler := handlers.NewBaseHandler(db)
@@ -28,6 +24,7 @@ func makeMux(db *sql.DB) *http.ServeMux {
 	mux.HandleFunc("/v1/register", handler.NewUser)
 	mux.HandleFunc("/v1/get", handler.GetUser)
 	mux.HandleFunc("/v1/alter", handler.AlterUser)
+	mux.HandleFunc("/v1/delete", handler.DeleteUser)
 
 	return mux
 }

@@ -5,25 +5,14 @@ import (
 	"io/ioutil"
 	"log"
 	"main/dbutil"
-	"main/util"
 	"net/http"
-	"time"
 
 	"github.com/buger/jsonparser"
 )
 
-func (h *BaseHandler) NewUser(w http.ResponseWriter, r *http.Request) {
-	if !EnsureMethod("POST", w, r) {
+func (h *BaseHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
+	if !EnsureMethod("DELETE", w, r) {
 		return
-	}
-
-	// construct a real user object
-	user := dbutil.User{
-		Username:     "",
-		Secret:       "",
-		Credentials:  []byte{'{', '}'},
-		Preferences:  []byte{'{', '}'},
-		RegisteredOn: time.Now(),
 	}
 
 	// jsonparser.EachKey will iterate over all keys in the json object and pass values
@@ -31,9 +20,12 @@ func (h *BaseHandler) NewUser(w http.ResponseWriter, r *http.Request) {
 	paths := [][]string{
 		{"user"},
 		{"secret"},
-		{"creds"},
-		{"prefs"},
 	}
+
+	var (
+		username string
+		secret   string
+	)
 
 	// convert response body to byte slice
 	data, err := ioutil.ReadAll(r.Body)
@@ -55,25 +47,13 @@ func (h *BaseHandler) NewUser(w http.ResponseWriter, r *http.Request) {
 				err = errors.New("username must be string")
 				return
 			}
-			user.Username = string(value)
+			username = string(value)
 		case 1: // []string{"secret"}
 			if vt != jsonparser.String {
 				err = errors.New("secret must be string")
 				return
 			}
-			user.Secret = string(value)
-		case 2: // []string{"creds"},
-			if vt != jsonparser.Object {
-				err = errors.New("creds must be object")
-				return
-			}
-			user.Credentials = value // just take the json directly
-		case 3: // []string{"prefs"},
-			if vt != jsonparser.Object {
-				err = errors.New("creds must be object")
-				return
-			}
-			user.Preferences = value // just take the json directly
+			secret = string(value)
 		}
 	}, paths...)
 
@@ -83,14 +63,14 @@ func (h *BaseHandler) NewUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if user.Username == "" || user.Secret == "" {
+	if username == "" || secret == "" {
 		// the request body was missing a field
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("missing username and/or secret"))
 		return
 	}
 
-	exists, err := dbutil.DoesUserExist(h.db, user.Username)
+	exists, err := dbutil.DoesUserExist(h.db, username)
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -98,24 +78,21 @@ func (h *BaseHandler) NewUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if exists {
-		w.WriteHeader(http.StatusConflict)
-		w.Write([]byte("already registered"))
+	if !exists {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("user not found"))
 		return
 	}
 
-	prefsOverrides, err := util.RemoveDefaultKeys(user.Preferences, dbutil.DefaultPreferences, true, true)
-
+	// delete the user
+	err = dbutil.DeleteUser(h.db, username, secret)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("invalid preferences"))
-		return
-	}
+		if err.Error() == "unauthorized" {
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte("no access to delete user"))
+			return
+		}
 
-	user.Preferences = prefsOverrides
-
-	// insert the user into the database
-	if err := dbutil.InsertNewUser(h.db, &user); err != nil {
 		// the database returned an error
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Println(err.Error())

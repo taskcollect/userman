@@ -3,6 +3,7 @@ package dbutil
 import (
 	"database/sql"
 	"errors"
+	"log"
 	"main/security"
 	"main/util"
 	"strings"
@@ -15,10 +16,9 @@ func InsertNewUser(db *sql.DB, user *User) error {
 		username,
 		secret,
 		registeredon,
-		lastlogin,
 		preferences,
 		credentials
-	) VALUES ( $1, $2, $3, $4, $5, $6  )`
+	) VALUES ( $1, $2, $3, $4, $5  )`
 
 	hash, err := security.Hash(user.Secret)
 	if err != nil {
@@ -29,10 +29,13 @@ func InsertNewUser(db *sql.DB, user *User) error {
 		user.Username,
 		hash,
 		user.RegisteredOn.UTC(),
-		user.LastLogin.UTC(),
 		user.Preferences,
 		user.Credentials,
 	)
+
+	if err == nil {
+		log.Printf("(db) registered new user " + user.Username)
+	}
 
 	return err
 }
@@ -69,6 +72,23 @@ func getUsefulData(db *sql.DB, uname, secret string) (string, []byte, []byte, er
 	}
 
 	return storedSecret, storedCreds, storedPrefsOverrides, nil
+}
+
+func getSecret(db *sql.DB, uname string) (string, error) {
+	row := db.QueryRow("SELECT secret FROM users WHERE username = $1", uname)
+
+	if row.Err() != nil {
+		return "", row.Err()
+	}
+
+	var secret string
+
+	err := row.Scan(&secret)
+	if err != nil {
+		return "", err
+	}
+
+	return secret, nil
 }
 
 func GetUser(db *sql.DB, uname string, secret string, wantCreds bool, wantPrefs bool) ([]byte, error) {
@@ -128,6 +148,7 @@ func GetUser(db *sql.DB, uname string, secret string, wantCreds bool, wantPrefs 
 		}
 	}
 
+	log.Printf("(db) returned data for user " + uname)
 	return out, nil
 }
 
@@ -169,5 +190,37 @@ func AlterUser(db *sql.DB, uname string, secret string, deltaPrefs, deltaCreds [
 
 	// update the db
 	_, err = RunQueryFailsafe(db, q, newPrefs, newCreds, uname)
+
+	if err == nil {
+		log.Printf("(db) altered user %s, delta creds: %dB, delta prefs: %dB", uname, len(deltaCreds), len(deltaPrefs))
+	}
+
 	return err
+}
+
+func DeleteUser(db *sql.DB, uname string, secret string) error {
+	storedSecret, err := getSecret(db, uname)
+	if err != nil {
+		return err
+	}
+
+	// make sure the user is authorized to access the data
+	authorized, err := security.Verify(secret, storedSecret)
+	if err != nil {
+		return err
+	}
+
+	if !authorized {
+		return errors.New("unauthorized")
+	}
+
+	q := `DELETE FROM users WHERE username = $1`
+
+	_, err = RunQueryFailsafe(db, q, uname)
+	if err != nil {
+		return err
+	}
+
+	log.Println("(db) deleted user " + uname)
+	return nil
 }
